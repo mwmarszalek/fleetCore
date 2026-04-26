@@ -10,23 +10,24 @@ import { Badge } from '@/components/ui/badge'
 
 const TODAY = new Date().toISOString().split('T')[0]
 
-const DEPOT_ORDER = ['SPAK', 'SPAD', 'SPPK', 'PKS', 'EZP', 'EZG']
+const DEPOT_ORDER = ['SPAK', 'SPAD', 'SPPK', 'PKS', 'EZP/EZG']
 
 const DEPOT_LABELS: Record<string, string> = {
-  SPAK: 'Klonowica (bus)',
-  SPAD: 'Dąbie (bus)',
-  SPPK: 'Pogodno (bus)',
-  PKS:  'PKS Szczecin (bus)',
-  EZP:  'Pogodno (tram)',
-  EZG:  'Golęcin (tram)',
+  SPAK:    'Klonowica (bus)',
+  SPAD:    'Dąbie (bus)',
+  SPPK:    'Pogodno (bus)',
+  PKS:     'PKS Szczecin (bus)',
+  'EZP/EZG': 'Tramwaje — Pogodno + Golęcin',
 }
 
 function groupByDepot(lines: Line[]) {
   const groups: Record<string, Line[]> = {}
   for (const line of lines) {
-    const depot = line.depots[0] ?? 'INNE'
-    if (!groups[depot]) groups[depot] = []
-    groups[depot].push(line)
+    // Linie tramwajowe obsługiwane przez oba depoty → jedna wspólna sekcja
+    const isTramShared = line.depots.includes('EZP') && line.depots.includes('EZG')
+    const key = isTramShared ? 'EZP/EZG' : (line.depots[0] ?? 'INNE')
+    if (!groups[key]) groups[key] = []
+    groups[key].push(line)
   }
   return groups
 }
@@ -82,7 +83,11 @@ export function FleetSidebar() {
   }
 
   async function claimDepot(depotId: string) {
-    const res = await api.post('/api/dispatch/sessions/claim-depot', { depotId })
+    // EZP/EZG to wspólna sekcja — używamy depotu usera lub 'EZP' jako klucza
+    const effectiveDepot = depotId === 'EZP/EZG'
+      ? (user?.depotId ?? 'EZP')
+      : depotId
+    const res = await api.post('/api/dispatch/sessions/claim-depot', { depotId: effectiveDepot })
     const data = await res.json()
     res.ok ? showMsg('ok', `Przejęto ${data.claimed} linii zajezdni ${depotId}`) : showMsg('err', data.error)
     loadLines()
@@ -108,10 +113,16 @@ export function FleetSidebar() {
     }
   }
 
-  const myUserId    = user?.userId
-  const myLines     = lines.filter(l => l.session?.userId === myUserId)
-  const available   = lines.filter(l => !l.session)
-  const displayed   = tab === 'mine' ? myLines : tab === 'available' ? available : lines
+  const myUserId = user?.userId
+
+  // DEPOT_DISPATCHER widzi tylko linie swojej zajezdni
+  const visibleLines = user?.role === 'DEPOT_DISPATCHER' && user?.depotId
+    ? lines.filter(l => l.depots.includes(user.depotId!))
+    : lines
+
+  const myLines   = visibleLines.filter(l => l.session?.userId === myUserId)
+  const available = visibleLines.filter(l => !l.session)
+  const displayed = tab === 'mine' ? myLines : tab === 'available' ? available : visibleLines
   const activeVehicles = Array.from(positions.values()).filter(p => p.line)
 
   return (

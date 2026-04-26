@@ -50,30 +50,21 @@ async function main() {
   await prisma.user.deleteMany({ where: { cityId: 'szczecin' } })
 
   const users = [
-    {
-      email: 'central@fleetcore.app',
-      password: 'admin123',
-      role: UserRole.CENTRAL_DISPATCHER,
-      cityId: 'szczecin',
-      depotId: null,
-      vehicleId: null,
-    },
-    {
-      email: 'spak@fleetcore.app',
-      password: 'spak123',
-      role: UserRole.DEPOT_DISPATCHER,
-      cityId: 'szczecin',
-      depotId: 'SPAK',
-      vehicleId: null,
-    },
-    {
-      email: 'kierowca1089@fleetcore.app',
-      password: 'kierowca123',
-      role: UserRole.DRIVER,
-      cityId: 'szczecin',
-      depotId: 'SPAK',
-      vehicleId: vehicle1089?.id ?? null,
-    },
+    // Dyspozytor Centralny
+    { email: 'central@fleetcore.app',  password: 'admin123',    role: UserRole.CENTRAL_DISPATCHER, cityId: 'szczecin', depotId: null,   vehicleId: null },
+
+    // Dyspozytorzy Zajezdni — autobusowe
+    { email: 'spak@fleetcore.app',     password: 'spak123',     role: UserRole.DEPOT_DISPATCHER,   cityId: 'szczecin', depotId: 'SPAK', vehicleId: null },
+    { email: 'spad@fleetcore.app',     password: 'spad123',     role: UserRole.DEPOT_DISPATCHER,   cityId: 'szczecin', depotId: 'SPAD', vehicleId: null },
+    { email: 'sppk@fleetcore.app',     password: 'sppk123',     role: UserRole.DEPOT_DISPATCHER,   cityId: 'szczecin', depotId: 'SPPK', vehicleId: null },
+    { email: 'pks@fleetcore.app',      password: 'pks123',      role: UserRole.DEPOT_DISPATCHER,   cityId: 'szczecin', depotId: 'PKS',  vehicleId: null },
+
+    // Dyspozytorzy Zajezdni — tramwajowe (obie widzą wszystkie linie tram)
+    { email: 'ezp@fleetcore.app',      password: 'ezp123',      role: UserRole.DEPOT_DISPATCHER,   cityId: 'szczecin', depotId: 'EZP',  vehicleId: null },
+    { email: 'ezg@fleetcore.app',      password: 'ezg123',      role: UserRole.DEPOT_DISPATCHER,   cityId: 'szczecin', depotId: 'EZG',  vehicleId: null },
+
+    // Kierowca
+    { email: 'kierowca1089@fleetcore.app', password: 'kierowca123', role: UserRole.DRIVER, cityId: 'szczecin', depotId: 'SPAK', vehicleId: vehicle1089?.id ?? null },
   ]
 
   for (const { password, ...data } of users) {

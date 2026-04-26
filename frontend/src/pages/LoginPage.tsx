@@ -6,9 +6,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 const TEST_ACCOUNTS = [
-  { email: 'central@fleetcore.app', password: 'admin123', role: 'Dyspozytor Centralny' },
-  { email: 'spak@fleetcore.app',    password: 'spak123',  role: 'Dyspozytor SPAK' },
-  { email: 'kierowca1089@fleetcore.app', password: 'kierowca123', role: 'Kierowca' },
+  { email: 'central@fleetcore.app',      password: 'admin123',    role: 'Dyspozytor Centralny' },
+  { email: 'spak@fleetcore.app',         password: 'spak123',     role: 'Dyspozytor SPAK' },
+  { email: 'spad@fleetcore.app',         password: 'spad123',     role: 'Dyspozytor SPAD' },
+  { email: 'sppk@fleetcore.app',         password: 'sppk123',     role: 'Dyspozytor SPPK' },
+  { email: 'pks@fleetcore.app',          password: 'pks123',      role: 'Dyspozytor PKS' },
+  { email: 'ezp@fleetcore.app',          password: 'ezp123',      role: 'Dyspozytor EZP (tram)' },
+  { email: 'ezg@fleetcore.app',          password: 'ezg123',      role: 'Dyspozytor EZG (tram)' },
+  { email: 'kierowca1089@fleetcore.app', password: 'kierowca123', role: 'Kierowca 1089' },
 ]
 
 export function LoginPage() {
