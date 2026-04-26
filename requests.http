@@ -1,0 +1,60 @@
+@baseUrl = http://localhost:3000
+@cityId = szczecin
+
+### Test 1 — lista wszystkich pojazdów
+GET {{baseUrl}}/api/vehicles
+x-city-id: {{cityId}}
+
+### Test 2 — dodaj nowy pojazd
+POST {{baseUrl}}/api/vehicles
+Content-Type: application/json
+x-city-id: {{cityId}}
+
+{
+  "number": "9999",
+  "depot": "SPAK",
+  "type": "SOLARIS"
+}
+
+### Test 3 — walidacja błędnych danych (pusty number, brak type)
+POST {{baseUrl}}/api/vehicles
+Content-Type: application/json
+x-city-id: {{cityId}}
+
+{
+  "number": "",
+  "depot": "SPAK"
+}
+
+### Test 4 — duplikat numeru (1089 już istnieje)
+POST {{baseUrl}}/api/vehicles
+Content-Type: application/json
+x-city-id: {{cityId}}
+
+{
+  "number": "1089",
+  "depot": "SPAD",
+  "type": "MAN"
+}
+
+### Test 5 — pobierz jeden pojazd po ID (podmień ID)
+GET {{baseUrl}}/api/vehicles/PODMIEN_ID
+x-city-id: {{cityId}}
+
+### Test 6 — edytuj pojazd (podmień ID pojazdu 9999 z Testu 2)
+PUT {{baseUrl}}/api/vehicles/PODMIEN_ID
+Content-Type: application/json
+x-city-id: {{cityId}}
+
+{
+  "depot": "SPAD",
+  "type": "MAN"
+}
+
+### Test 7 — usuń pojazd (podmień ID)
+DELETE {{baseUrl}}/api/vehicles/PODMIEN_ID
+x-city-id: {{cityId}}
+
+### Test 8 — nieistniejący pojazd
+GET {{baseUrl}}/api/vehicles/nie-istnieje
+x-city-id: {{cityId}}

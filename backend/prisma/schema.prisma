@@ -6,3 +6,16 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Vehicle {
+  id        String   @id @default(uuid())
+  number    String
+  depot     String
+  type      String
+  cityId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([number, cityId])
+  @@index([cityId])
+}
