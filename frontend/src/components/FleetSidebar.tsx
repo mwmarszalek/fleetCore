@@ -95,7 +95,7 @@ export function FleetSidebar() {
     loadLines()
   }
 
-  async function handleVehicleLogin(e: React.FormEvent) {
+  async function handleVehicleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const res = await api.post('/api/assignments', vehicleForm)
     const data = await res.json()
@@ -115,7 +115,7 @@ export function FleetSidebar() {
   const activeVehicles = Array.from(positions.values()).filter(p => p.line)
 
   return (
-    <div className="w-[300px] min-w-[300px] h-screen bg-card border-r border-border flex flex-col text-sm overflow-hidden">
+    <div className="w-75 min-w-75 h-screen bg-card border-r border-border flex flex-col text-sm overflow-hidden">
 
       {/* Header */}
       <div className="p-4 border-b border-border">
