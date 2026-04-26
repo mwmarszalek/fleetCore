@@ -41,3 +41,37 @@ model VehicleAssignment {
   @@index([cityId, date])
   @@index([vehicleId, date])
 }
+
+model Line {
+  id          String   @id @default(uuid())
+  zditmId     Int      @unique
+  number      String
+  type        String   // day | night
+  subtype     String   // normal | semi-fast | fast | replacement | additional | special | tourist
+  vehicleType String   // bus | tram | skm
+  onDemand    Boolean  @default(false)
+  highlighted Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  depots      String[] // zajezdnie obsługujące linię (np. ["SPAK", "PKS"])
+  cityId      String
+
+  @@unique([number, cityId])
+  @@index([cityId])
+}
+
+model Stop {
+  id                 String  @id @default(uuid())
+  zditmId            Int     @unique
+  number             String
+  name               String
+  lat                Float
+  lng                Float
+  requestStop        Boolean @default(false)
+  parkAndRide        Boolean @default(false)
+  technical          Boolean @default(false)
+  railwayStationName String?
+  cityId             String
+
+  @@index([cityId])
+  @@index([name, cityId])
+}
