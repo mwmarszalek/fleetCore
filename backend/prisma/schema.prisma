@@ -7,6 +7,26 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  CENTRAL_DISPATCHER
+  DEPOT_DISPATCHER
+  DRIVER
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String
+  passwordHash String
+  role         UserRole
+  cityId       String
+  depotId      String?  // DEPOT_DISPATCHER + DRIVER
+  vehicleId    String?  // DRIVER only
+  createdAt    DateTime @default(now())
+
+  @@unique([email, cityId])
+  @@index([cityId])
+}
+
 enum VehicleCategory {
   BUS
   TRAM
