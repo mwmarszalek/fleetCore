@@ -14,14 +14,15 @@ enum UserRole {
 }
 
 model User {
-  id           String   @id @default(uuid())
+  id           String            @id @default(uuid())
   email        String
   passwordHash String
   role         UserRole
   cityId       String
-  depotId      String?  // DEPOT_DISPATCHER + DRIVER
-  vehicleId    String?  // DRIVER only
-  createdAt    DateTime @default(now())
+  depotId      String?
+  vehicleId    String?
+  createdAt    DateTime          @default(now())
+  sessions     DispatchSession[]
 
   @@unique([email, cityId])
   @@index([cityId])
@@ -63,17 +64,18 @@ model VehicleAssignment {
 }
 
 model Line {
-  id          String   @id @default(uuid())
-  zditmId     Int      @unique
+  id          String           @id @default(uuid())
+  zditmId     Int              @unique
   number      String
-  type        String   // day | night
-  subtype     String   // normal | semi-fast | fast | replacement | additional | special | tourist
-  vehicleType String   // bus | tram | skm
-  onDemand    Boolean  @default(false)
-  highlighted Boolean  @default(false)
-  sortOrder   Int      @default(0)
-  depots      String[] // zajezdnie obsługujące linię (np. ["SPAK", "PKS"])
+  type        String
+  subtype     String
+  vehicleType String
+  onDemand    Boolean          @default(false)
+  highlighted Boolean          @default(false)
+  sortOrder   Int              @default(0)
+  depots      String[]
   cityId      String
+  session     DispatchSession?
 
   @@unique([number, cityId])
   @@index([cityId])
@@ -94,4 +96,18 @@ model Stop {
 
   @@index([cityId])
   @@index([name, cityId])
+}
+
+model DispatchSession {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  lineId    String   @unique
+  line      Line     @relation(fields: [lineId], references: [id])
+  cityId    String
+  claimedAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+  @@index([cityId])
 }

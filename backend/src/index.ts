@@ -9,6 +9,7 @@ import { authRoutes } from './modules/auth/auth.routes.js'
 import { vehicleRoutes } from './modules/vehicles/vehicle.routes.js'
 import { assignmentRoutes } from './modules/assignments/assignment.routes.js'
 import { trackingRoutes } from './modules/tracking/tracking.routes.js'
+import { dispatchRoutes } from './modules/dispatch/dispatch.routes.js'
 
 const app = Fastify({ logger: true })
 
@@ -45,6 +46,7 @@ await app.register(authRoutes,       { prefix: '/api/auth' })
 await app.register(vehicleRoutes,    { prefix: '/api/vehicles' })
 await app.register(assignmentRoutes, { prefix: '/api/assignments' })
 await app.register(trackingRoutes,   { prefix: '/tracking' })
+await app.register(dispatchRoutes,   { prefix: '/api/dispatch' })
 
 try {
   await app.listen({ port: 3000, host: '0.0.0.0' })
