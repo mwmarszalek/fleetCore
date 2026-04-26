@@ -1,16 +1,17 @@
 import 'dotenv/config'
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
+import websocket from '@fastify/websocket'
 import { ZodError } from 'zod'
 import { Prisma } from '@prisma/client'
 import { vehicleRoutes } from './modules/vehicles/vehicle.routes.js'
 import { assignmentRoutes } from './modules/assignments/assignment.routes.js'
+import { trackingRoutes } from './modules/tracking/tracking.routes.js'
 
 const app = Fastify({ logger: true })
 
-await app.register(cors, {
-  origin: 'http://localhost:5173',
-})
+await app.register(cors, { origin: 'http://localhost:5173' })
+await app.register(websocket)
 
 app.setErrorHandler((error, _req, reply) => {
   if (error instanceof ZodError) {
@@ -26,12 +27,11 @@ app.setErrorHandler((error, _req, reply) => {
   return reply.status(500).send({ error: 'Internal server error' })
 })
 
-app.get('/health', async () => {
-  return { status: 'ok', service: 'fleetcore-backend' }
-})
+app.get('/health', async () => ({ status: 'ok', service: 'fleetcore-backend' }))
 
 await app.register(vehicleRoutes, { prefix: '/api/vehicles' })
 await app.register(assignmentRoutes, { prefix: '/api/assignments' })
+await app.register(trackingRoutes, { prefix: '/tracking' })
 
 try {
   await app.listen({ port: 3000, host: '0.0.0.0' })
