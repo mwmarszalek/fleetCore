@@ -1,9 +1,8 @@
-import { FleetMap } from './components/FleetMap'
+import { useAuthStore } from './store/authStore'
+import { LoginPage } from './pages/LoginPage'
+import { Dashboard } from './pages/Dashboard'
 
 export default function App() {
-  return (
-    <div style={{ width: '100vw', height: '100vh' }}>
-      <FleetMap />
-    </div>
-  )
+  const token = useAuthStore(s => s.token)
+  return token ? <Dashboard /> : <LoginPage />
 }

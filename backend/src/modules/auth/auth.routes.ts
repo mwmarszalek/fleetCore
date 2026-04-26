@@ -27,7 +27,7 @@ export async function authRoutes(app: FastifyInstance) {
       vehicleId: user.vehicleId,
     })
 
-    return { token, user: { id: user.id, email: user.email, role: user.role, cityId: user.cityId, depotId: user.depotId } }
+    return { token, user: { userId: user.id, email: user.email, role: user.role, cityId: user.cityId, depotId: user.depotId } }
   })
 
   app.get('/me', { onRequest: [app.authenticate] }, async (req) => {
