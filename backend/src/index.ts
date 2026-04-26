@@ -4,6 +4,7 @@ import cors from '@fastify/cors'
 import { ZodError } from 'zod'
 import { Prisma } from '@prisma/client'
 import { vehicleRoutes } from './modules/vehicles/vehicle.routes.js'
+import { assignmentRoutes } from './modules/assignments/assignment.routes.js'
 
 const app = Fastify({ logger: true })
 
@@ -30,6 +31,7 @@ app.get('/health', async () => {
 })
 
 await app.register(vehicleRoutes, { prefix: '/api/vehicles' })
+await app.register(assignmentRoutes, { prefix: '/api/assignments' })
 
 try {
   await app.listen({ port: 3000, host: '0.0.0.0' })

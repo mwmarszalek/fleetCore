@@ -8,14 +8,30 @@ datasource db {
 }
 
 model Vehicle {
-  id        String   @id @default(uuid())
-  number    String
-  depot     String
-  type      String
-  cityId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String              @id @default(uuid())
+  number      String
+  depot       String
+  type        String
+  cityId      String
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  assignments VehicleAssignment[]
 
   @@unique([number, cityId])
   @@index([cityId])
+}
+
+model VehicleAssignment {
+  id          String    @id @default(uuid())
+  vehicleId   String
+  vehicle     Vehicle   @relation(fields: [vehicleId], references: [id])
+  line        String
+  brigade     String
+  date        DateTime  @db.Date
+  loggedInAt  DateTime  @default(now())
+  loggedOutAt DateTime?
+  cityId      String
+
+  @@index([cityId, date])
+  @@index([vehicleId, date])
 }
