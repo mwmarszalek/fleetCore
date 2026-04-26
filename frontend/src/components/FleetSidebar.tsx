@@ -3,18 +3,22 @@ import { useAuthStore } from '../store/authStore'
 import { useDispatchStore, type Line } from '../store/dispatchStore'
 import { useTrackingStore } from '../store/trackingStore'
 import { apiClient } from '../api/client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
 
 const TODAY = new Date().toISOString().split('T')[0]
 
 const DEPOT_ORDER = ['SPAK', 'SPAD', 'SPPK', 'PKS', 'EZP', 'EZG']
 
 const DEPOT_LABELS: Record<string, string> = {
-  SPAK: 'SPAK — Klonowica (bus)',
-  SPAD: 'SPAD — Dąbie (bus)',
-  SPPK: 'SPPK — Pogodno (bus)',
+  SPAK: 'Klonowica (bus)',
+  SPAD: 'Dąbie (bus)',
+  SPPK: 'Pogodno (bus)',
   PKS:  'PKS Szczecin (bus)',
-  EZP:  'EZP — Pogodno (tram)',
-  EZG:  'EZG — Golęcin (tram)',
+  EZP:  'Pogodno (tram)',
+  EZG:  'Golęcin (tram)',
 }
 
 function groupByDepot(lines: Line[]) {
@@ -36,14 +40,14 @@ const ROLE_LABELS: Record<string, string> = {
 type Tab = 'mine' | 'available' | 'all'
 
 export function FleetSidebar() {
-  const { token, user, logout }         = useAuthStore()
-  const { lines, setLines }             = useDispatchStore()
-  const { positions }                   = useTrackingStore()
-  const [tab, setTab]                   = useState<Tab>('available')
+  const { token, user, logout }               = useAuthStore()
+  const { lines, setLines }                   = useDispatchStore()
+  const { positions }                         = useTrackingStore()
+  const [tab, setTab]                         = useState<Tab>('available')
   const [showVehicleForm, setShowVehicleForm] = useState(false)
-  const [vehicleForm, setVehicleForm]   = useState({ vehicleId: '', line: '', brigade: '', date: TODAY })
-  const [vehicles, setVehicles]         = useState<any[]>([])
-  const [msg, setMsg]                   = useState<{ type: 'ok' | 'err', text: string } | null>(null)
+  const [vehicleForm, setVehicleForm]         = useState({ vehicleId: '', line: '', brigade: '', date: TODAY })
+  const [vehicles, setVehicles]               = useState<any[]>([])
+  const [msg, setMsg]                         = useState<{ type: 'ok' | 'err', text: string } | null>(null)
 
   const api = apiClient(token!)
 
@@ -55,19 +59,21 @@ export function FleetSidebar() {
   useEffect(() => {
     loadLines()
     api.get('/api/vehicles').then(r => r.json()).then(setVehicles)
-    // Heartbeat co 60s
-    const hb = setInterval(() => api.post('/api/dispatch/sessions/heartbeat'), 60_000)
-    // Odświeżaj linie co 15s
+    const hb   = setInterval(() => api.post('/api/dispatch/sessions/heartbeat'), 60_000)
     const poll = setInterval(loadLines, 15_000)
     return () => { clearInterval(hb); clearInterval(poll) }
   }, [loadLines])
 
+  function showMsg(type: 'ok' | 'err', text: string) {
+    setMsg({ type, text })
+    setTimeout(() => setMsg(null), 3000)
+  }
+
   async function claimLine(lineId: string) {
     const res = await api.post('/api/dispatch/sessions/claim', { lineIds: [lineId] })
     const data = await res.json()
-    if (res.ok) { setMsg({ type: 'ok', text: 'Linia przejęta' }); loadLines() }
-    else setMsg({ type: 'err', text: data.error })
-    setTimeout(() => setMsg(null), 3000)
+    res.ok ? showMsg('ok', 'Linia przejęta') : showMsg('err', data.error)
+    loadLines()
   }
 
   async function releaseLine(lineId: string) {
@@ -78,9 +84,15 @@ export function FleetSidebar() {
   async function claimDepot(depotId: string) {
     const res = await api.post('/api/dispatch/sessions/claim-depot', { depotId })
     const data = await res.json()
-    if (res.ok) { setMsg({ type: 'ok', text: `Przejęto ${data.claimed} linii zajezdni ${depotId}` }); loadLines() }
-    else setMsg({ type: 'err', text: data.error })
-    setTimeout(() => setMsg(null), 3000)
+    res.ok ? showMsg('ok', `Przejęto ${data.claimed} linii zajezdni ${depotId}`) : showMsg('err', data.error)
+    loadLines()
+  }
+
+  async function releaseDepot(depot: string, depotLines: Line[]) {
+    const ids = depotLines.filter(l => l.session?.userId === myUserId).map(l => l.id)
+    await api.delete('/api/dispatch/sessions/release', { lineIds: ids })
+    showMsg('ok', `Zwolniono linie zajezdni ${depot}`)
+    loadLines()
   }
 
   async function handleVehicleLogin(e: React.FormEvent) {
@@ -88,260 +100,224 @@ export function FleetSidebar() {
     const res = await api.post('/api/assignments', vehicleForm)
     const data = await res.json()
     if (res.ok) {
-      setMsg({ type: 'ok', text: `Pojazd zalogowany na ${vehicleForm.line}/${vehicleForm.brigade}` })
+      showMsg('ok', `Pojazd zalogowany na ${vehicleForm.line}/${vehicleForm.brigade}`)
       setShowVehicleForm(false)
       setVehicleForm({ vehicleId: '', line: '', brigade: '', date: TODAY })
     } else {
-      setMsg({ type: 'err', text: data.error })
+      showMsg('err', data.error)
     }
-    setTimeout(() => setMsg(null), 4000)
   }
 
-  const myUserId = user?.userId
-  const myLines   = lines.filter(l => l.session?.userId === myUserId)
-  const available = lines.filter(l => !l.session)
-
-  const displayedLines: Line[] = tab === 'mine' ? myLines : tab === 'available' ? available : lines
-
-  const isDriver = user?.role === 'DRIVER'
+  const myUserId    = user?.userId
+  const myLines     = lines.filter(l => l.session?.userId === myUserId)
+  const available   = lines.filter(l => !l.session)
+  const displayed   = tab === 'mine' ? myLines : tab === 'available' ? available : lines
+  const activeVehicles = Array.from(positions.values()).filter(p => p.line)
 
   return (
-    <div style={{
-      width: 300, minWidth: 300, height: '100vh',
-      background: '#1a1f2e', color: '#e2e8f0',
-      display: 'flex', flexDirection: 'column',
-      fontFamily: 'system-ui, sans-serif', fontSize: 13,
-      overflowY: 'auto',
-    }}>
+    <div className="w-[300px] min-w-[300px] h-screen bg-card border-r border-border flex flex-col text-sm overflow-hidden">
+
       {/* Header */}
-      <div style={{ padding: '14px 16px', borderBottom: '1px solid #2d3748' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div className="p-4 border-b border-border">
+        <div className="flex justify-between items-start">
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>FleetCore</div>
-            <div style={{ fontSize: 11, color: '#63b3ed', marginTop: 2 }}>
-              {ROLE_LABELS[user?.role ?? '']}
-            </div>
-            <div style={{ fontSize: 11, color: '#4a5568', marginTop: 1 }}>{user?.email}</div>
+            <div className="text-base font-bold text-foreground">FleetCore</div>
+            <div className="text-xs text-primary mt-0.5">{ROLE_LABELS[user?.role ?? '']}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">{user?.email}</div>
             {user?.depotId && (
-              <div style={{ fontSize: 11, color: '#718096', marginTop: 1 }}>Zajezdnia: {user.depotId}</div>
+              <div className="text-xs text-muted-foreground">Zajezdnia: {user.depotId}</div>
             )}
           </div>
-          <button onClick={logout} style={{
-            background: 'transparent', border: '1px solid #4a5568',
-            color: '#718096', padding: '4px 10px', borderRadius: 6,
-            cursor: 'pointer', fontSize: 11,
-          }}>
+          <Button variant="outline" size="sm" onClick={logout} className="text-xs h-7">
             Wyloguj
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Komunikat */}
       {msg && (
-        <div style={{
-          margin: '10px 12px 0', padding: '8px 12px', borderRadius: 6, fontSize: 12,
-          background: msg.type === 'ok' ? '#1c4532' : '#742a2a',
-          color: msg.type === 'ok' ? '#9ae6b4' : '#feb2b2',
-        }}>
+        <div className={`mx-3 mt-2 px-3 py-2 rounded-md text-xs ${
+          msg.type === 'ok'
+            ? 'bg-green-950 text-green-300 border border-green-800'
+            : 'bg-red-950 text-red-300 border border-red-800'
+        }`}>
           {msg.type === 'ok' ? '✓' : '✗'} {msg.text}
         </div>
       )}
 
-      {!isDriver && (
+      {user?.role !== 'DRIVER' && (
         <>
           {/* Taby */}
-          <div style={{ display: 'flex', gap: 4, padding: '10px 12px 0' }}>
-            {([['mine', `Moje (${myLines.length})`], ['available', `Wolne (${available.length})`], ['all', `Wszystkie (${lines.length})`]] as const).map(([key, label]) => (
-              <button key={key} onClick={() => setTab(key)} style={{
-                flex: 1, padding: '5px 4px', borderRadius: 5, border: 'none', cursor: 'pointer',
-                fontSize: 11, fontWeight: 600,
-                background: tab === key ? '#3182ce' : '#252d3d',
-                color: tab === key ? '#fff' : '#718096',
-              }}>
+          <div className="flex gap-1 px-3 pt-3">
+            {([
+              ['mine',      `Moje (${myLines.length})`],
+              ['available', `Wolne (${available.length})`],
+              ['all',       `Wszystkie (${lines.length})`],
+            ] as const).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setTab(key)}
+                className={`flex-1 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer border-0 ${
+                  tab === key
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-muted-foreground hover:text-foreground'
+                }`}
+              >
                 {label}
               </button>
             ))}
           </div>
 
-          {/* Lista linii pogrupowana po zajezdni */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px' }}>
-            {displayedLines.length === 0 && (
-              <div style={{ color: '#4a5568', fontSize: 12, padding: '8px 0' }}>Brak linii</div>
+          {/* Lista linii */}
+          <div className="flex-1 overflow-y-auto px-3 py-2">
+            {displayed.length === 0 && (
+              <p className="text-xs text-muted-foreground py-2">Brak linii</p>
             )}
             {(() => {
-              const groups = groupByDepot(displayedLines)
-              const depots = [...DEPOT_ORDER.filter(d => groups[d]), ...Object.keys(groups).filter(d => !DEPOT_ORDER.includes(d))]
-              return depots.map(depot => (
-                <div key={depot}>
-                  {/* Nagłówek zajezdni */}
-                  <div style={{
-                    padding: '10px 10px 8px',
-                    marginBottom: 4, marginTop: 6,
-                    background: '#252d3d',
-                    borderRadius: 8,
-                    borderLeft: '3px solid #4a5568',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>
-                        {depot}
+              const groups = groupByDepot(displayed)
+              const depots = [
+                ...DEPOT_ORDER.filter(d => groups[d]),
+                ...Object.keys(groups).filter(d => !DEPOT_ORDER.includes(d)),
+              ]
+              return depots.map(depot => {
+                const depotLines  = groups[depot]
+                const iOwnSome    = depotLines.some(l => l.session?.userId === myUserId)
+                return (
+                  <div key={depot} className="mb-2">
+                    {/* Nagłówek zajezdni */}
+                    <div className="flex justify-between items-center px-2.5 py-2 mt-1 bg-secondary rounded-lg border-l-[3px] border-muted-foreground">
+                      <div>
+                        <div className="text-sm font-bold text-foreground">{depot}</div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
+                          {DEPOT_LABELS[depot] ?? depot} · {depotLines.length} linii
+                        </div>
                       </div>
-                      <div style={{ fontSize: 10, color: '#718096', marginTop: 1 }}>
-                        {DEPOT_LABELS[depot] ?? depot} · {groups[depot].length} linii
-                      </div>
-                    </div>
-                    {(() => {
-                      const depotLines = groups[depot]
-                      const iOwnSome = depotLines.some(l => l.session?.userId === myUserId)
-                      return iOwnSome ? (
-                        <button
-                          onClick={async () => {
-                            const ids = depotLines.filter(l => l.session?.userId === myUserId).map(l => l.id)
-                            await api.delete('/api/dispatch/sessions/release', { lineIds: ids })
-                            setMsg({ type: 'ok', text: `Zwolniono linie zajezdni ${depot}` })
-                            setTimeout(() => setMsg(null), 3000)
-                            loadLines()
-                          }}
-                          style={{
-                            background: '#2d1515', border: '1px solid #742a2a',
-                            color: '#fc8181', padding: '4px 10px', borderRadius: 5,
-                            cursor: 'pointer', fontSize: 10, fontWeight: 600,
-                            whiteSpace: 'nowrap',
-                          }}
+                      {iOwnSome ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => releaseDepot(depot, depotLines)}
+                          className="text-[10px] h-6 px-2 border-red-800 text-red-400 bg-red-950 hover:bg-red-900 hover:text-red-300"
                         >
                           Zdaj kontrolę
-                        </button>
+                        </Button>
                       ) : (
-                        <button
+                        <Button
+                          size="sm"
                           onClick={() => claimDepot(depot)}
-                          style={{
-                            background: '#2b4c8c', border: 'none',
-                            color: '#90cdf4', padding: '4px 10px', borderRadius: 5,
-                            cursor: 'pointer', fontSize: 10, fontWeight: 600,
-                            whiteSpace: 'nowrap',
-                          }}
+                          className="text-[10px] h-6 px-2"
                         >
                           Przejmij wszystkie
-                        </button>
-                      )
-                    })()}
-                  </div>
+                        </Button>
+                      )}
+                    </div>
 
-                  {groups[depot].map(line => {
-                    const isMine  = !!line.session && line.session.userId === myUserId
-                    const isTaken = !!line.session && !isMine
-                    return (
-                      <div key={line.id} style={{
-                        padding: '6px 9px', borderRadius: 6, marginBottom: 3,
-                        background: isMine ? '#1a365d' : '#252d3d',
-                        borderLeft: `3px solid ${isMine ? '#63b3ed' : isTaken ? '#4a5568' : '#48bb78'}`,
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      }}>
-                        <div>
-                          <span style={{ fontWeight: 600, color: isTaken ? '#718096' : '#fff', fontSize: 13 }}>
-                            {line.vehicleType === 'tram' ? '🔴' : '🔵'} {line.number}
-                          </span>
-                          <span style={{ color: '#4a5568', fontSize: 10, marginLeft: 5 }}>
-                            {line.type === 'night' ? 'NOC' : line.subtype === 'semi-fast' || line.subtype === 'fast' ? 'POSP' : ''}
-                          </span>
-                          {isTaken && (
-                            <div style={{ fontSize: 10, color: '#4a5568', marginTop: 1 }}>
-                              {line.session!.user.email}
-                            </div>
+                    {/* Linie */}
+                    {depotLines.map(line => {
+                      const isMine  = !!line.session && line.session.userId === myUserId
+                      const isTaken = !!line.session && !isMine
+                      return (
+                        <div
+                          key={line.id}
+                          className={`flex justify-between items-center px-2.5 py-1.5 rounded-md mb-0.5 border-l-[3px] ${
+                            isMine  ? 'bg-blue-950/50 border-primary' :
+                            isTaken ? 'bg-secondary border-muted' :
+                                      'bg-secondary border-green-600'
+                          }`}
+                        >
+                          <div>
+                            <span className={`font-semibold text-sm ${isTaken ? 'text-muted-foreground' : 'text-foreground'}`}>
+                              {line.vehicleType === 'tram' ? '🔴' : '🔵'} {line.number}
+                            </span>
+                            {(line.type === 'night' || line.subtype === 'semi-fast' || line.subtype === 'fast') && (
+                              <Badge variant="secondary" className="ml-1.5 text-[9px] px-1 py-0 h-4">
+                                {line.type === 'night' ? 'NOC' : 'POSP'}
+                              </Badge>
+                            )}
+                            {isTaken && (
+                              <div className="text-[10px] text-muted-foreground mt-0.5">
+                                {line.session!.user.email}
+                              </div>
+                            )}
+                          </div>
+                          {isMine && (
+                            <Button variant="outline" size="sm" onClick={() => releaseLine(line.id)}
+                              className="text-[10px] h-5 px-2">
+                              Zwolnij
+                            </Button>
+                          )}
+                          {!line.session && (
+                            <Button size="sm" onClick={() => claimLine(line.id)}
+                              className="text-[10px] h-5 px-2 bg-green-800 hover:bg-green-700 text-green-100">
+                              Przejmij
+                            </Button>
                           )}
                         </div>
-                        {isMine && (
-                          <button onClick={() => releaseLine(line.id)} style={{
-                            background: 'transparent', border: '1px solid #4a5568',
-                            color: '#718096', padding: '2px 8px', borderRadius: 4,
-                            cursor: 'pointer', fontSize: 10,
-                          }}>Zwolnij</button>
-                        )}
-                        {!line.session && (
-                          <button onClick={() => claimLine(line.id)} style={{
-                            background: '#276749', border: 'none',
-                            color: '#9ae6b4', padding: '2px 8px', borderRadius: 4,
-                            cursor: 'pointer', fontSize: 10,
-                          }}>Przejmij</button>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              ))
+                      )
+                    })}
+                  </div>
+                )
+              })
             })()}
           </div>
         </>
       )}
 
       {/* Aktywne pojazdy */}
-      {positions.size > 0 && (
-        <div style={{ padding: '10px 12px', borderTop: '1px solid #2d3748' }}>
-          <div style={{ fontSize: 11, color: '#718096', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 6 }}>
-            Na trasie ({Array.from(positions.values()).filter(p => p.line).length})
-          </div>
-          {Array.from(positions.values()).filter(p => p.line).map(p => (
-            <div key={p.vehicleId} style={{
-              display: 'flex', justifyContent: 'space-between',
-              padding: '4px 0', borderBottom: '1px solid #2d3748',
-            }}>
-              <span style={{ color: '#a0aec0' }}>{p.number}</span>
-              <span style={{ color: '#718096', fontSize: 11 }}>{p.line}/{p.brigade}</span>
+      {activeVehicles.length > 0 && (
+        <div className="border-t border-border px-3 py-2">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-1.5">
+            Na trasie ({activeVehicles.length})
+          </p>
+          {activeVehicles.map(p => (
+            <div key={p.vehicleId} className="flex justify-between py-1 border-b border-border/50 last:border-0">
+              <span className="text-foreground/70 text-xs">{p.number}</span>
+              <span className="text-muted-foreground text-xs">{p.line}/{p.brigade}</span>
             </div>
           ))}
         </div>
       )}
 
+      <Separator />
+
       {/* Formularz logowania pojazdu */}
-      <div style={{ padding: 12, borderTop: '1px solid #2d3748' }}>
+      <div className="p-3">
         {!showVehicleForm ? (
-          <button onClick={() => setShowVehicleForm(true)} style={{
-            width: '100%', padding: '8px 0', borderRadius: 6, border: 'none',
-            background: '#3182ce', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 13,
-          }}>
+          <Button className="w-full" onClick={() => setShowVehicleForm(true)}>
             + Zaloguj pojazd na brygadę
-          </button>
+          </Button>
         ) : (
-          <form onSubmit={handleVehicleLogin}>
-            <div style={{ fontSize: 11, color: '#a0aec0', marginBottom: 8, fontWeight: 600 }}>Logowanie na brygadę</div>
-            <select required value={vehicleForm.vehicleId}
+          <form onSubmit={handleVehicleLogin} className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground">Logowanie na brygadę</p>
+            <select
+              required value={vehicleForm.vehicleId}
               onChange={e => setVehicleForm(f => ({ ...f, vehicleId: e.target.value }))}
-              style={inputStyle}>
+              className="w-full h-8 rounded-md border border-input bg-secondary text-foreground text-xs px-2 focus:outline-none focus:ring-2 focus:ring-ring"
+            >
               <option value=''>Wybierz pojazd...</option>
               {vehicles.map((v: any) => (
                 <option key={v.id} value={v.id}>{v.number} — {v.depot}</option>
               ))}
             </select>
-            <div style={{ display: 'flex', gap: 6 }}>
-              <input required placeholder='Linia' value={vehicleForm.line}
+            <div className="flex gap-1.5">
+              <Input required placeholder="Linia" value={vehicleForm.line}
                 onChange={e => setVehicleForm(f => ({ ...f, line: e.target.value }))}
-                style={{ ...inputStyle, flex: 1 }} />
-              <input required placeholder='Brygada' value={vehicleForm.brigade}
+                className="text-xs h-8" />
+              <Input required placeholder="Brygada" value={vehicleForm.brigade}
                 onChange={e => setVehicleForm(f => ({ ...f, brigade: e.target.value }))}
-                style={{ ...inputStyle, flex: 1 }} />
+                className="text-xs h-8" />
             </div>
-            <input type='date' required value={vehicleForm.date}
+            <Input type="date" required value={vehicleForm.date}
               onChange={e => setVehicleForm(f => ({ ...f, date: e.target.value }))}
-              style={inputStyle} />
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button type='submit' style={{
-                flex: 1, padding: '7px 0', borderRadius: 6, border: 'none',
-                background: '#3182ce', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 12,
-              }}>Zaloguj</button>
-              <button type='button' onClick={() => setShowVehicleForm(false)} style={{
-                padding: '7px 10px', borderRadius: 6, border: '1px solid #4a5568',
-                background: 'transparent', color: '#718096', cursor: 'pointer', fontSize: 12,
-              }}>Anuluj</button>
+              className="text-xs h-8" />
+            <div className="flex gap-1.5">
+              <Button type="submit" className="flex-1 text-xs h-8">Zaloguj</Button>
+              <Button type="button" variant="outline" onClick={() => setShowVehicleForm(false)}
+                className="text-xs h-8">Anuluj</Button>
             </div>
           </form>
         )}
       </div>
     </div>
   )
-}
-
-const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '7px 9px', borderRadius: 6, marginBottom: 8,
-  border: '1px solid #4a5568', background: '#2d3748',
-  color: '#e2e8f0', fontSize: 13, boxSizing: 'border-box',
 }
