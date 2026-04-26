@@ -5,6 +5,7 @@ export type VehiclePosition = {
   number: string
   depot: string
   type: string
+  category: 'BUS' | 'TRAM'
   line: string | null
   brigade: string | null
   lat: number

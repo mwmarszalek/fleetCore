@@ -1,9 +1,11 @@
 import { prisma } from '../../db.js'
+import { VehicleCategory } from '@prisma/client'
 
 export type VehicleCreate = {
   number: string
   depot: string
   type: string
+  category: VehicleCategory
   cityId: string
 }
 

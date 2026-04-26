@@ -5,6 +5,7 @@ export type VehiclePosition = {
   number: string
   depot: string
   type: string
+  category: 'BUS' | 'TRAM'
   line: string | null
   brigade: string | null
   lat: number
@@ -57,6 +58,7 @@ type SimVehicle = {
   number: string
   depot: string
   type: string
+  category: 'BUS' | 'TRAM'
   routeIndex: number
   waypointIndex: number
   progress: number   // 0..1 między waypointami
@@ -75,6 +77,7 @@ export async function initSimulator() {
       number: v.number,
       depot: v.depot,
       type: v.type,
+      category: v.category as 'BUS' | 'TRAM',
       routeIndex: i % ROUTES.length,
       waypointIndex: Math.floor(Math.random() * ROUTES[i % ROUTES.length].length),
       progress: Math.random(),
@@ -140,6 +143,7 @@ export async function tickSimulator(cityId: string): Promise<VehiclePosition[]> 
       number: sim.number,
       depot: sim.depot,
       type: sim.type,
+      category: sim.category,
       line: assignment?.line ?? null,
       brigade: assignment?.brigade ?? null,
       lat,

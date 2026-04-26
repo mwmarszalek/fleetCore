@@ -7,11 +7,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum VehicleCategory {
+  BUS
+  TRAM
+}
+
 model Vehicle {
   id          String              @id @default(uuid())
   number      String
   depot       String
   type        String
+  category    VehicleCategory
   cityId      String
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt

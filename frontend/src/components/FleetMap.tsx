@@ -4,7 +4,6 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { useTrackingStore } from '../store/trackingStore'
 
 const SZCZECIN_CENTER: [number, number] = [14.5528, 53.4285]
-const TRAM_DEPOTS = ['EZP', 'EZG']
 
 export function FleetMap() {
   const mapContainer = useRef<HTMLDivElement>(null)
@@ -85,7 +84,8 @@ export function FleetMap() {
           .setLngLat(coords)
           .setHTML(`
             <strong>Pojazd ${props.number}</strong><br/>
-            Zajezdnia: ${props.depot} · Typ: ${props.type}<br/>
+            ${props.isTram ? '🔴 Tramwaj' : '🔵 Autobus'} · ${props.type}<br/>
+            Zajezdnia: ${props.depot}<br/>
             ${props.line ? `Linia: <strong>${props.line}</strong> · Brygada: <strong>${props.brigade}</strong><br/>` : 'Brak przypisania<br/>'}
             Prędkość: ${props.speed} km/h
           `)
@@ -127,7 +127,7 @@ export function FleetMap() {
         line: p.line,
         brigade: p.brigade,
         speed: p.speed,
-        isTram: TRAM_DEPOTS.includes(p.depot),
+        isTram: p.category === 'TRAM',
         label: p.line ? `${p.number}\n${p.line}` : p.number,
       },
     }))

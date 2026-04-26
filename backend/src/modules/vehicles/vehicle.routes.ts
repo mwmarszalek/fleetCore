@@ -6,12 +6,13 @@ const createSchema = z.object({
   number: z.string().min(1).max(20),
   depot: z.string().min(1).max(50),
   type: z.string().min(1).max(50),
+  category: z.enum(['BUS', 'TRAM']),
 })
 
 const updateSchema = createSchema.partial()
 
 function cityId(req: { headers: Record<string, string | string[] | undefined> }): string {
-  return (req.headers['x-city-id'] as string) ?? 'warsaw'
+  return (req.headers['x-city-id'] as string) ?? 'szczecin'
 }
 
 export async function vehicleRoutes(app: FastifyInstance) {
