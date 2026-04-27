@@ -164,22 +164,12 @@ export function FleetMap() {
   }, [setPositions, setConnected])
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      <div ref={mapContainer} style={{ width: '100%', height: '100%' }} />
-      <div style={{
-        position: 'absolute', top: 12, left: 12,
-        background: 'white', borderRadius: 8, padding: '8px 14px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.15)', fontSize: 13,
-        display: 'flex', alignItems: 'center', gap: 8,
-      }}>
-        <span style={{
-          width: 8, height: 8, borderRadius: '50%',
-          background: connected ? '#22c55e' : '#ef4444',
-          display: 'inline-block',
-        }} />
-        {connected ? `${positions.size} pojazdów online` : 'Łączenie...'}
-        <span style={{ marginLeft: 8, color: '#666' }}>
-          🔵 Autobus &nbsp; 🔴 Tramwaj
+    <div className="relative w-full h-full">
+      <div ref={mapContainer} className="w-full h-full" />
+      <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow text-xs flex items-center gap-2">
+        <span className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`} />
+        <span className="text-gray-700">
+          {connected ? `${positions.size} pojazdów online` : 'Łączenie...'}
         </span>
       </div>
     </div>
