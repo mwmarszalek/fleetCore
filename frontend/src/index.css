@@ -1,59 +1,117 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: system-ui, sans-serif;
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-primary: var(--primary);
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  --color-background:        var(--background);
+  --color-foreground:        var(--foreground);
+  --color-card:              var(--card);
+  --color-card-foreground:   var(--card-foreground);
+  --color-border:            var(--border);
+  --color-input:             var(--input);
+  --color-primary:           var(--primary);
   --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
+  --color-secondary:         var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-destructive: var(--destructive);
-  --color-ring: var(--ring);
+  --color-muted:             var(--muted);
+  --color-muted-foreground:  var(--muted-foreground);
+  --color-destructive:       var(--destructive);
+  --color-ring:              var(--ring);
+
+  /* Custom design tokens */
+  --color-surf:              var(--surf);
+  --color-surf2:             var(--surf2);
+  --color-surf3:             var(--surf3);
+  --color-border2:           var(--border2);
+  --color-text-dim:          var(--text-dim);
+  --color-text-off:          var(--text-off);
+
+  --color-spak:              var(--spak);
+  --color-spad:              var(--spad);
+  --color-sppk:              var(--sppk);
+  --color-pks:               var(--pks);
+  --color-tram:              var(--tram);
+
+  --color-on-time:           var(--on-time);
+  --color-delayed:           var(--delayed);
+  --color-early:             var(--early);
+  --color-warn:              var(--warn);
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
 }
 
-/* Dark theme jako domyślny — nadpisuje shadcn defaults */
 :root,
 .dark {
-  --background: oklch(0.16 0.02 255);
-  --foreground: oklch(0.92 0.01 255);
-  --card: oklch(0.19 0.02 255);
-  --card-foreground: oklch(0.92 0.01 255);
-  --popover: oklch(0.19 0.02 255);
-  --popover-foreground: oklch(0.92 0.01 255);
-  --primary: oklch(0.60 0.20 255);
-  --primary-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.22 0.02 255);
-  --secondary-foreground: oklch(0.92 0.01 255);
-  --muted: oklch(0.22 0.02 255);
-  --muted-foreground: oklch(0.58 0.02 255);
-  --accent: oklch(0.22 0.02 255);
-  --accent-foreground: oklch(0.92 0.01 255);
-  --destructive: oklch(0.50 0.18 25);
-  --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.28 0.02 255);
-  --input: oklch(0.25 0.02 255);
-  --ring: oklch(0.60 0.20 255);
+  /* Backgrounds */
+  --background:    #0d1117;
+  --foreground:    #cdd9e5;
+  --card:          #161b22;
+  --card-foreground: #cdd9e5;
+  --popover:       #161b22;
+  --popover-foreground: #cdd9e5;
+
+  /* Surfaces (custom) */
+  --surf:          #161b22;
+  --surf2:         #21262d;
+  --surf3:         #2d333b;
+
+  /* Borders */
+  --border:        #30363d;
+  --border2:       #444c56;
+  --input:         #21262d;
+
+  /* Text */
+  --text-dim:      #768390;
+  --text-off:      #444c56;
+
+  /* Primary = SPAK blue */
+  --primary:               #60a5fa;
+  --primary-foreground:    #ffffff;
+  --secondary:             #21262d;
+  --secondary-foreground:  #cdd9e5;
+  --muted:                 #21262d;
+  --muted-foreground:      #768390;
+  --accent:                #21262d;
+  --accent-foreground:     #cdd9e5;
+
+  /* Status */
+  --on-time:       #3fb950;
+  --delayed:       #f85149;
+  --early:         #58a6ff;
+  --warn:          #d29922;
+  --destructive:   #f85149;
+  --destructive-foreground: #ffffff;
+  --ring:          #60a5fa;
+
+  /* Depot colors */
+  --spak:          #60a5fa;
+  --spad:          #a78bfa;
+  --sppk:          #34d399;
+  --pks:           #fbbf24;
+  --tram:          #f87171;
+
   --radius: 0.5rem;
-  --sidebar: oklch(0.19 0.02 255);
-  --sidebar-foreground: oklch(0.92 0.01 255);
-  --sidebar-border: oklch(0.28 0.02 255);
 }
 
 @layer base {
-  * { box-sizing: border-box; }
-  body { margin: 0; }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body, #root { height: 100%; overflow: hidden; }
+  body {
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-size: 13px;
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
+  }
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
 }

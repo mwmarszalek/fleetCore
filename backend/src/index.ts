@@ -13,7 +13,7 @@ import { dispatchRoutes } from './modules/dispatch/dispatch.routes.js'
 
 const app = Fastify({ logger: true })
 
-await app.register(cors, { origin: 'http://localhost:5173' })
+await app.register(cors, { origin: /^http:\/\/localhost:\d+$/ })
 await app.register(websocket)
 await app.register(jwt, { secret: process.env.JWT_SECRET! })
 
