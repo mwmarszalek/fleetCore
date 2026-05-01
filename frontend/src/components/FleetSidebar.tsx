@@ -5,6 +5,7 @@ import { useTrackingStore } from '../store/trackingStore'
 import { apiClient } from '../api/client'
 import { LineBadge } from './LineBadge'
 import { DEPOT_ORDER, DEPOT_COLORS, DEPOT_LABELS, lineDepotKey, type DepotKey } from '@/lib/depotColors'
+import { mockDelay, delayLabelShort } from '@/lib/mock'
 
 type Props = {
   watchedLines: Set<string>
@@ -21,11 +22,6 @@ function delayChipColor(delay: number) {
   return               { bg:'rgba(88,166,255,0.20)',  border:'rgba(88,166,255,0.55)', text:'#58a6ff' }
 }
 
-function delayLabel(d: number): string {
-  if (d === 0) return '0'
-  if (d < 0) return `${d}`
-  return `+${d}`
-}
 
 function groupByDepot(lines: Line[]) {
   const groups: Record<DepotKey, Line[]> = { SPAK: [], SPAD: [], SPPK: [], PKS: [], TRAM: [] }
@@ -122,7 +118,7 @@ export function FleetSidebar({ watchedLines, onToggleWatch, onSelectLine, select
               {isOpen && lines.map(line => {
                 const lineVehicles = vehiclesArr
                   .filter(v => v.line === line.number)
-                  .map(v => ({ ...v, mockDelay: mockDelayFromId(v.vehicleId) })) // mock losowy
+                  .map(v => ({ ...v, mockDelay: mockDelay(v.vehicleId) }))
                   .sort((a, b) => a.mockDelay - b.mockDelay)
 
                 const isWatched = watchedLines.has(line.number)
@@ -169,7 +165,7 @@ export function FleetSidebar({ watchedLines, onToggleWatch, onSelectLine, select
                               style={{ background: c.bg, border: `1px solid ${c.border}` }}
                             >
                               <span className="text-text-dim">{v.number}</span>
-                              <span style={{ color: c.text, fontWeight: 600 }}>{delayLabel(v.mockDelay)}</span>
+                              <span style={{ color: c.text, fontWeight: 600 }}>{delayLabelShort(v.mockDelay)}</span>
                             </div>
                           )
                         })}
@@ -186,10 +182,3 @@ export function FleetSidebar({ watchedLines, onToggleWatch, onSelectLine, select
   )
 }
 
-// Mock losowy delay z ID pojazdu (deterministyczny) — do czasu prawdziwych rozkładów
-function mockDelayFromId(id: string): number {
-  let h = 0
-  for (const c of id) h = (h << 5) - h + c.charCodeAt(0)
-  const v = (h % 31) - 15  // -15..+15
-  return v
-}

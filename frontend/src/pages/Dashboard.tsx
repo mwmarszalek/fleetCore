@@ -4,6 +4,8 @@ import { FleetMap } from '../components/FleetMap'
 import { AppHeader, type Tab } from '../components/AppHeader'
 import { LineControlModal } from '../components/modals/LineControlModal'
 import { VehicleLoginModal } from '../components/modals/VehicleLoginModal'
+import { LinePunctualityPanel } from '../components/LinePunctualityPanel'
+import { mockDelay } from '../lib/mock'
 import { useAuthStore } from '../store/authStore'
 import { useDispatchStore } from '../store/dispatchStore'
 import { useTrackingStore } from '../store/trackingStore'
@@ -56,13 +58,20 @@ export function Dashboard() {
         selectedLine={selectedLine}
       />
 
-      <main className="flex flex-col overflow-hidden">
+      <main className="relative flex flex-col overflow-hidden">
         {activeTab === 'map' && <FleetMap />}
         {activeTab === 'punctuality' && (
           <div className="p-6 text-text-dim">Widok punktualności — Etap 2</div>
         )}
         {activeTab === 'brigades' && (
           <div className="p-6 text-text-dim">Widok brygad — Etap 2</div>
+        )}
+
+        {selectedLine && (
+          <LinePunctualityPanel
+            lineNumber={selectedLine}
+            onClose={() => setSelectedLine(null)}
+          />
         )}
       </main>
 
@@ -72,8 +81,3 @@ export function Dashboard() {
   )
 }
 
-function mockDelay(id: string): number {
-  let h = 0
-  for (const c of id) h = (h << 5) - h + c.charCodeAt(0)
-  return (h % 31) - 15
-}

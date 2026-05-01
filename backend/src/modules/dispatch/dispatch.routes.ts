@@ -64,4 +64,12 @@ export async function dispatchRoutes(app: FastifyInstance) {
     const count = await service.heartbeat(req.user.userId, req.user.cityId)
     return { renewed: count, expiresIn: '2 minutes' }
   })
+
+  // Trajektoria linii z nazwami krańców (proxy ZDiTM + Redis 24h)
+  app.get('/trajectories/:lineNumber', auth, async (req, reply) => {
+    const { lineNumber } = req.params as { lineNumber: string }
+    try {
+      return service.getTrajectory(lineNumber)
+    } catch (err) { return handleError(err, reply) }
+  })
 }

@@ -1,4 +1,90 @@
 import { prisma } from '../../db.js'
+import { redis } from '../../redis.js'
+
+const ZDITM = 'https://www.zditm.szczecin.pl/api/v1'
+const TTL   = 24 * 60 * 60
+
+async function cached<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+  const hit = await redis.get(key)
+  if (hit) return JSON.parse(hit) as T
+  const data = await fetcher()
+  await redis.setex(key, TTL, JSON.stringify(data))
+  return data
+}
+
+type ZditmLine = { id: number; number: string }
+type ZditmStop = { name: string; latitude: number; longitude: number }
+type Feature   = {
+  properties: { route_variant_number: number; route_variant_type: string }
+  geometry:   { type: string; coordinates: [number, number][] }
+}
+
+function zditmLines() {
+  return cached<ZditmLine[]>('zditm:lines', async () => {
+    const res = await fetch(`${ZDITM}/lines`)
+    const { data } = await res.json() as { data: ZditmLine[] }
+    return data
+  })
+}
+
+function zditmStops() {
+  return cached<ZditmStop[]>('zditm:stops', async () => {
+    const res = await fetch(`${ZDITM}/stops`)
+    const { data } = await res.json() as { data: ZditmStop[] }
+    return data
+  })
+}
+
+function zditmTrajectory(id: number) {
+  return cached<{ features: Feature[] }>(`zditm:traj:${id}`, async () => {
+    const res  = await fetch(`${ZDITM}/trajectories/${id}`)
+    const json = await res.json() as { data?: { features: Feature[] } } & { features?: Feature[] }
+    return (json.data ?? json) as { features: Feature[] }
+  })
+}
+
+function nearestStop(stops: ZditmStop[], lon: number, lat: number): string {
+  let best = stops[0], bestD = Infinity
+  for (const s of stops) {
+    const d = (s.latitude - lat) ** 2 + (s.longitude - lon) ** 2
+    if (d < bestD) { bestD = d; best = s }
+  }
+  return best.name
+}
+
+function dirInfo(variant: Feature, stops: ZditmStop[]) {
+  const coords = variant.geometry.coordinates
+  const [fromLon, fromLat] = coords[0]
+  const [toLon, toLat]     = coords[coords.length - 1]
+  return {
+    geometry: variant.geometry,
+    from: nearestStop(stops, fromLon, fromLat),
+    to:   nearestStop(stops, toLon,   toLat),
+  }
+}
+
+export async function getTrajectory(lineNumber: string) {
+  const [lines, stops] = await Promise.all([zditmLines(), zditmStops()])
+
+  const zditmLine = lines.find(l => l.number === lineNumber)
+  if (!zditmLine) throw new Error('LINE_NOT_FOUND')
+
+  const fc       = await zditmTrajectory(zditmLine.id)
+  const defaults = fc.features.filter(f => f.properties.route_variant_type === 'default')
+
+  const varA = defaults
+    .filter(f => f.properties.route_variant_number % 2 === 1)
+    .sort((a, b) => a.properties.route_variant_number - b.properties.route_variant_number)[0]
+
+  const varB = defaults
+    .filter(f => f.properties.route_variant_number % 2 === 0)
+    .sort((a, b) => a.properties.route_variant_number - b.properties.route_variant_number)[0]
+
+  return {
+    directionA: varA ? dirInfo(varA, stops) : null,
+    directionB: varB ? dirInfo(varB, stops) : null,
+  }
+}
 
 const SESSION_TTL_MS = 2 * 60 * 1000 // 2 minuty
 
