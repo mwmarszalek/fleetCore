@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useAuthStore } from '../store/authStore'
 import { useDispatchStore } from '../store/dispatchStore'
 import { useTrackingStore } from '../store/trackingStore'
@@ -11,6 +11,8 @@ type Props = {
   lineNumber: string
   onClose: () => void
 }
+
+type Mode = 'wide' | 'sbs'
 
 function chipStyle(delay: number) {
   if (delay < -2) return { bg: 'rgba(248,81,73,0.18)',  border: 'rgba(248,81,73,0.55)',  text: '#f85149' }
@@ -33,22 +35,49 @@ function assignRows(vehicles: Vehicle[], progressFn: (id: string) => number) {
   })
 }
 
+function IconWide() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1.5 6h9"/>
+      <path d="M4 4L1.5 6 4 8"/>
+      <path d="M8 4l2.5 2L8 8"/>
+    </svg>
+  )
+}
+function IconSbs() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="0.75" y="1" width="10.5" height="10" rx="0.8"/>
+      <line x1="6" y1="1" x2="6" y2="11"/>
+    </svg>
+  )
+}
+
+const MODE_ICONS: Record<Mode, () => React.ReactElement> = {
+  wide: IconWide,
+  sbs:  IconSbs,
+}
+const MODE_TITLES: Record<Mode, string> = {
+  wide: 'Jeden pod drugim',
+  sbs:  'Obok siebie',
+}
+
 function DirectionBar({
-  dir, vehicles, depotColor, label, progressFn, wide,
+  dir, vehicles, depotColor, label, progressFn, sbs,
 }: {
   dir: DirectionInfo
   vehicles: Vehicle[]
   depotColor: string
   label: string
   progressFn: (id: string) => number
-  wide: boolean
+  sbs: boolean
 }) {
   const withRows = assignRows(vehicles, progressFn)
   const maxRow   = withRows.reduce((m, v) => Math.max(m, v.row), 0)
   const barH     = 12 + (maxRow + 1) * 24 + 8
 
   return (
-    <div className={`${wide ? 'flex-1 min-w-0' : ''} px-4 pt-2 pb-3`}>
+    <div className={`${sbs ? 'flex-1 min-w-0' : ''} px-4 pt-2 pb-3`}>
       <div className="text-[11px] text-text-dim mb-2 font-medium">{label}</div>
 
       <div className="relative" style={{ height: Math.max(barH, 48) }}>
@@ -99,7 +128,7 @@ export function LinePunctualityPanel({ lineNumber, onClose }: Props) {
   const { trajectories, setTrajectory } = useTrajectoryStore()
 
   const [visible, setVisible] = useState(false)
-  const [wide,    setWide]    = useState(false)
+  const [mode,    setMode]    = useState<Mode>('wide')
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
 
@@ -131,27 +160,29 @@ export function LinePunctualityPanel({ lineNumber, onClose }: Props) {
 
   // mockProgress < 0.5 → direction A,  >= 0.5 → direction B
   // Progress is re-mapped to 0–1 within each direction
-  const vehiclesA  = vehicles.filter(v => mockProgress(v.vehicleId) < 0.5)
-  const vehiclesB  = vehicles.filter(v => mockProgress(v.vehicleId) >= 0.5)
-  const progressA  = (id: string) => mockProgress(id) * 2
-  const progressB  = (id: string) => (mockProgress(id) - 0.5) * 2
+  const vehiclesA = vehicles.filter(v => mockProgress(v.vehicleId) < 0.5)
+  const vehiclesB = vehicles.filter(v => mockProgress(v.vehicleId) >= 0.5)
+  const progressA = (id: string) => mockProgress(id) * 2
+  const progressB = (id: string) => (mockProgress(id) - 0.5) * 2
 
   const terminus = traj?.directionA
     ? `${traj.directionA.from} ↔ ${traj.directionA.to}`
     : null
 
+  const isSbs = mode === 'sbs'
+
   return (
     <div
       className="absolute top-1/2 left-1/2 z-40 rounded-xl border border-border flex flex-col shadow-2xl"
       style={{
-        width: wide ? 'calc(100% - 2rem)' : 560,
+        width: 'calc(100% - 2rem)',
         maxWidth: 'calc(100% - 2rem)',
         background: 'rgba(22,27,34,0.80)',
         backdropFilter: 'blur(10px)',
         WebkitBackdropFilter: 'blur(10px)',
         transform: `translate(-50%, -50%) scale(${visible ? 1 : 0.95})`,
         opacity: visible ? 1 : 0,
-        transition: 'transform 200ms ease-out, opacity 200ms ease-out, width 200ms ease-out',
+        transition: 'transform 200ms ease-out, opacity 200ms ease-out',
       }}
     >
       {/* Header */}
@@ -162,24 +193,32 @@ export function LinePunctualityPanel({ lineNumber, onClose }: Props) {
         {terminus && (
           <span className="text-[11px] text-text-dim truncate">{terminus}</span>
         )}
+
         <span className="ml-auto text-[11px] text-text-dim shrink-0 pl-4">
           {vehicles.length} {vehicles.length === 1 ? 'pojazd' : vehicles.length < 5 ? 'pojazdy' : 'pojazdów'}
         </span>
-        <button
-          onClick={() => setWide(w => !w)}
-          title={wide ? 'Zwęź panel' : 'Rozszerz panel'}
-          className="w-6 h-6 flex items-center justify-center rounded text-text-dim hover:text-foreground hover:bg-surf2 cursor-pointer shrink-0"
-        >
-          {wide ? (
-            <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M4 1H1v3M7 1h3v3M4 10H1V7M7 10h3V7" />
-            </svg>
-          ) : (
-            <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M1 4V1h3M10 4V1H7M1 7v3h3M10 7v3H7" />
-            </svg>
-          )}
-        </button>
+
+        {/* Mode switcher */}
+        <div className="flex items-center rounded border border-border overflow-hidden shrink-0">
+          {(['wide', 'sbs'] as const).map(m => {
+            const Icon = MODE_ICONS[m]
+            return (
+              <button
+                key={m}
+                onClick={() => setMode(m)}
+                title={MODE_TITLES[m]}
+                className={`w-6 h-6 flex items-center justify-center cursor-pointer transition-colors ${
+                  mode === m
+                    ? 'bg-surf3 text-foreground'
+                    : 'text-text-dim hover:bg-surf2 hover:text-foreground'
+                }`}
+              >
+                <Icon />
+              </button>
+            )
+          })}
+        </div>
+
         <button
           onClick={handleClose}
           className="w-6 h-6 flex items-center justify-center rounded text-text-dim hover:text-foreground hover:bg-surf2 cursor-pointer shrink-0"
@@ -202,7 +241,7 @@ export function LinePunctualityPanel({ lineNumber, onClose }: Props) {
         </div>
       )}
       {!loading && !error && traj && (
-        <div className={wide ? 'flex divide-x divide-border' : 'flex flex-col divide-y divide-border'}>
+        <div className={isSbs ? 'flex divide-x divide-border' : 'flex flex-col divide-y divide-border'}>
           {traj.directionA && (
             <DirectionBar
               dir={traj.directionA}
@@ -210,7 +249,7 @@ export function LinePunctualityPanel({ lineNumber, onClose }: Props) {
               depotColor={color}
               label={`→ ${traj.directionA.to}`}
               progressFn={progressA}
-              wide={wide}
+              sbs={isSbs}
             />
           )}
           {traj.directionB && (
@@ -220,7 +259,7 @@ export function LinePunctualityPanel({ lineNumber, onClose }: Props) {
               depotColor={color}
               label={`→ ${traj.directionB.to}`}
               progressFn={progressB}
-              wide={wide}
+              sbs={isSbs}
             />
           )}
         </div>
